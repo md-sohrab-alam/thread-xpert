@@ -1,0 +1,48 @@
+You are an expert full-stack developer. I want you to create a clean, modern web app UI and working prototype using React (or Next.js) + Tailwind CSS. You can use OpenAI's GPT-4 API as the backend.
+
+🎯 Purpose: AI-powered Email Writing Assistant to help employees improve emails quickly.
+
+✅ Requirements:
+
+1. **Input Section**:
+   - A large text area where users paste raw or bullet-point email content.
+   - Placeholder: “Paste your raw email or idea here...”
+
+2. **Tone Selector**:
+   - Dropdown or buttons with tone options:
+     - Formal
+     - Polite
+     - Friendly
+     - Assertive
+     - Apologetic
+   - Default tone: Formal
+
+3. **Action Button**:
+   - Button: “Rewrite Email with AI”
+   - When clicked, send input and tone to GPT-4 API
+
+4. **AI Output Section**:
+   - Shows the rewritten, polished email.
+   - Include a “Copy to Clipboard” button.
+
+5. **Optional Enhancements** (if time permits):
+   - Summarize long emails
+   - Translate between Arabic ↔ English
+   - Suggest Subject Line
+   - Auto-format with signature (e.g., “Regards, Woqod Team”)
+
+🛠 Tech:
+- Frontend: React + Tailwind (or Next.js)
+- Backend: Node.js or serverless (you decide)
+- AI: Use OpenAI GPT-4 API for rephrasing and tone transformation
+- Style: Clean, professional, mobile-friendly
+
+🎨 Design:
+- Header: “WOQOD AI Email Assistant”
+- Keep colors minimal (Woqod green tones if possible)
+- Use card-based layout, soft shadows, large padding
+
+Output:
+- A full working React web app with components separated
+- Explain how to plug in the OpenAI API key
+- Sample prompts for different tones

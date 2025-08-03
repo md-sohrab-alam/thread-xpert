@@ -5,9 +5,13 @@ A utility web app to help users edit and format their text for social media post
 ## Features
 
 - **Fix Grammar**: AI-powered grammar correction using GPT-3.5-turbo
-- **Split for X**: Intelligent splitting of long text into X threads with 240 character limit
+- **Split for X**: Intelligent splitting of long text into X threads with 280 character limit
 - **Shorten**: AI-powered text shortening while maintaining key messages
 - **Make Viral**: AI-enhanced text optimization for social media engagement
+- **Live Character Counter**: Real-time character counting with color coding
+- **Editable Results**: Edit AI-generated content inline
+- **X Preview**: Preview how your threads will look on X
+- **Responsive Design**: Works perfectly on mobile and desktop
 
 ## Tech Stack
 
@@ -41,6 +45,38 @@ A utility web app to help users edit and format their text for social media post
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Deployment
+
+### Option 1: Vercel (Recommended)
+
+1. **Connect to GitHub:**
+   - Go to [vercel.com](https://vercel.com)
+   - Sign up with GitHub
+   - Import your `thread-xpert` repository
+
+2. **Add Environment Variables:**
+   - In Vercel dashboard, go to your project settings
+   - Add environment variable: `OPENAI_API_KEY`
+   - Set the value to your OpenAI API key
+
+3. **Deploy:**
+   - Vercel will automatically build and deploy
+   - Get a live URL instantly
+
+### Option 2: Netlify
+
+1. **Connect repository** to Netlify
+2. **Build settings:**
+   - Build command: `npm run build`
+   - Publish directory: `.next`
+3. **Environment variables** in Netlify dashboard
+
+### Option 3: Railway
+
+1. **Connect GitHub** to Railway
+2. **Add environment variables**
+3. **Deploy** with one click
+
 ## OpenAI API Setup
 
 1. Get your OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
@@ -53,11 +89,12 @@ A utility web app to help users edit and format their text for social media post
 1. Paste or type your text in the input area
 2. Select one of the four AI processing modes:
    - **Fix Grammar**: AI corrects grammar, spelling, and punctuation
-   - **Split for X**: AI intelligently splits text into X threads (240 char limit)
+   - **Split for X**: AI intelligently splits text into X threads (280 char limit)
    - **Shorten**: AI shortens text while preserving key messages
    - **Make Viral**: AI optimizes text for social media engagement
 3. Click "💡 Process with AI" to generate results
-4. Copy individual results using the copy button
+4. Edit results inline if needed
+5. Copy individual results using the copy button
 
 ## AI Features in Detail
 
@@ -68,14 +105,16 @@ A utility web app to help users edit and format their text for social media post
 
 ### Split for X Mode
 - AI intelligently splits text by complete thoughts and sentences
-- Ensures each thread stays within 240 character limit
+- Ensures each thread stays within 280 character limit
 - Optimizes for readability and engagement
 - Returns multiple threads as separate copyable items
+- X Preview shows how threads will appear
 
 ### Shorten Mode
-- AI shortens text to fit within 240 characters
+- AI shortens text to fit within target character limit
 - Preserves key messages and meaning
 - Maintains readability and flow
+- Adjustable character limit (100-500 characters)
 
 ### Make Viral Mode
 - AI enhances text for social media engagement
@@ -87,6 +126,7 @@ A utility web app to help users edit and format their text for social media post
 - Fully responsive design that works on mobile and desktop
 - Optimized touch interactions
 - Clean, modern UI with proper spacing
+- Compact layout fits on single screen
 
 ## Development
 

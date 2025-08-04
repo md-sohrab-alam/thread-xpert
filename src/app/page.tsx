@@ -509,9 +509,11 @@ export default function AIThreadEditor() {
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex flex-col lg:flex-row justify-between items-start gap-3">
                     <div className="flex-1 w-full">
-                      <div className="text-xs sm:text-sm text-gray-500 mb-2 font-medium">
-                        {mode === 'split' && !autoNumberTweets ? `Thread ${index + 1}` : mode === 'split' ? 'Thread' : 'AI Result'}
-                      </div>
+                      {mode === 'split' && (
+                        <div className="text-xs sm:text-sm text-gray-500 mb-2 font-medium">
+                          {!autoNumberTweets ? `Thread ${index + 1}` : 'Thread'}
+                        </div>
+                      )}
                       
                       {item.isEditing ? (
                         <div className="space-y-3">

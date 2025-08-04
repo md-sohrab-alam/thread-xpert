@@ -1,0 +1,21 @@
+{
+  "name": "AI Thread Editor - Thread Xpert",
+  "short_name": "Thread Xpert",
+  "description": "Free AI-powered tool to edit, translate, and format text for Twitter/X threads, Instagram posts, and social media.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 

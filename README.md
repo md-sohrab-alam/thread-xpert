@@ -1,7 +1,8 @@
 # AI Thread Editor ✨
 
-A utility web app to help users edit and format their text for social media posts, particularly optimized for X (Twitter) threads. Now powered by OpenAI's GPT-3.5-turbo for intelligent text processing.
+An AI-powered web app to transform long-form text into optimized, engaging X (Twitter) threads. Features include grammar correction, smart thread splitting, customizable numbering, multilingual support (20+ languages), and viral content generation. Built with GPT-3.5-turbo and designed as a responsive, mobile-friendly PWA.
 
+🔗 https://thread-xpert.vercel.app
 ## Features
 
 - **Fix Grammar**: AI-powered grammar correction using GPT-3.5-turbo

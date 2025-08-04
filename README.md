@@ -2,6 +2,8 @@
 
 A powerful, enterprise-level web app to transform and optimize text for social media posts, particularly designed for X (Twitter) threads. Powered by OpenAI's GPT-3.5-turbo with advanced multilingual support and SEO optimization.
 
+🔗 https://thread-xpert.vercel.app
+
 ## 🌟 Key Features
 
 ### 🤖 AI Processing Modes

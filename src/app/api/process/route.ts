@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
 Given the input text, correct any grammar, spelling, or punctuation errors. Do not change the meaning or tone. Preserve line breaks, formatting, and emojis.
 
-${targetLanguage ? `IMPORTANT: Translate the text to ${targetLanguage} while correcting grammar and spelling.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
+${targetLanguage && targetLanguage !== 'same' ? `IMPORTANT: Translate the text to ${targetLanguage} while correcting grammar and spelling.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
 
 Only make changes if they improve clarity or correctness.
 
@@ -115,37 +115,42 @@ Output:`
       case 'split':
         systemPrompt = `You are an expert at writing X (Twitter) threads.
 
-Split the input into a clear and engaging Twitter thread using the following rules:
+Split the input into the fewest number of tweets possible using these rules:
 
-1. Each tweet must be under 280 characters.
-2. Only use as many tweets as necessary — combine ideas if they fit well together.
-3. Start with a strong hook.
-4. Use simple formatting (like bullets or emojis) to boost readability.
-5. End with a call-to-action or summary if appropriate.
+1. Each tweet MUST be ≤280 characters - this is a hard limit for X (Twitter).
+2. Fill up as much of the 280-character limit as possible without breaking sentences.
+3. Each tweet must end at a logical sentence or clause boundary.
+4. Do not truncate or omit any content - preserve all information.
+5. Start with a strong hook to engage readers.
+6. Use simple formatting (bullets, emojis) to boost readability.
+7. End with a call-to-action or summary if appropriate.
 
-${targetLanguage ? `IMPORTANT: Translate the text to ${targetLanguage} while creating the thread.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
+OPTIMIZATION STRATEGY:
+- Maximize character usage (aim for 250-280 characters per tweet)
+- Break only at natural sentence/clause boundaries
+- Combine related ideas into single tweets when possible
+- Ensure smooth flow between tweets
+
+CRITICAL: Double-check that every tweet is under 280 characters before returning.
+
+${targetLanguage && targetLanguage !== 'same' ? `IMPORTANT: Translate the text to ${targetLanguage} while creating the thread.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
 
 Return the threads as a JSON array of strings.`
         prompt = `Input:
 ${text}
 
-Output Format:
-Thread 1:
-<Tweet 1>
-
-<Tweet 2>
-
-<Tweet 3>`
+Output:`
         break
 
       case 'shorten':
+        const actualTarget = Math.min(targetCharacters, text.length)
         systemPrompt = `You are a copywriting expert.
 
 Your job is to shorten the input text as much as possible **without losing key information or impact**. Use concise, clear wording. Avoid fluff. Preserve the original tone and intent.
 
-Keep emojis and bullet points if present. Keep it under ${targetCharacters} characters if possible.
+Keep emojis and bullet points if present. Keep it under ${actualTarget} characters if possible.
 
-${targetLanguage ? `IMPORTANT: Translate the text to ${targetLanguage} while shortening it.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
+${targetLanguage && targetLanguage !== 'same' ? `IMPORTANT: Translate the text to ${targetLanguage} while shortening it.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
 
 Return only the shortened version without explanations.`
         prompt = `Input:
@@ -163,7 +168,7 @@ Optional: Add a question, bold opinion, or CTA to drive reactions.
 
 Preserve the original message, but amplify it with viral energy.
 
-${targetLanguage ? `IMPORTANT: Translate the text to ${targetLanguage} while making it viral.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
+${targetLanguage && targetLanguage !== 'same' ? `IMPORTANT: Translate the text to ${targetLanguage} while making it viral.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
 
 Return only the viral version without explanations.`
         prompt = `Input:
@@ -198,13 +203,20 @@ Output:`
       )
     }
 
-    // Handle split mode specially to parse JSON
+    // Handle split mode specially to parse JSON and validate character limits
     if (mode === 'split') {
       try {
         const threads = JSON.parse(result)
         if (Array.isArray(threads)) {
+          // Validate that all threads are under 280 characters
+          const validThreads = threads.filter(thread => thread.length <= 280)
+          
+          if (validThreads.length !== threads.length) {
+            console.warn('Some threads exceeded 280 characters and were filtered out')
+          }
+          
           return NextResponse.json({ 
-            result: threads,
+            result: validThreads,
             rateLimit: {
               remaining: rateLimit.remaining,
               resetTime: rateLimit.resetTime
@@ -212,10 +224,16 @@ Output:`
           })
         }
       } catch (e) {
-        // If JSON parsing fails, split by newlines
+        // If JSON parsing fails, split by newlines and validate limits
         const threads = result.split('\n').filter(t => t.trim().length > 0)
+        const validThreads = threads.filter(thread => thread.length <= 280)
+        
+        if (validThreads.length !== threads.length) {
+          console.warn('Some threads exceeded 280 characters and were filtered out')
+        }
+        
         return NextResponse.json({ 
-          result: threads,
+          result: validThreads,
           rateLimit: {
             remaining: rateLimit.remaining,
             resetTime: rateLimit.resetTime

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Wand2, Split, Sparkles, Copy, Loader2, Edit3, Check, X, Linkedin, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,6 +23,27 @@ export default function AIThreadEditor() {
   const [result, setResult] = useState<EditableResult[]>([])
   const [mode, setMode] = useState('grammar')
   const [targetCharacters, setTargetCharacters] = useState(280)
+  
+  // Update target characters when input changes (for shorten mode)
+  useEffect(() => {
+    if (mode === 'shorten') {
+      if (input.length > 0) {
+        // Calculate default target: 50% of input if < 280, else 280
+        const defaultTarget = input.length < 280 ? Math.floor(input.length * 0.5) : 280
+        
+        // If current target is higher than input length, adjust it
+        if (targetCharacters > input.length) {
+          setTargetCharacters(input.length)
+        } else if (targetCharacters < 50) {
+          // Set to default if target is too low
+          setTargetCharacters(defaultTarget)
+        }
+      } else {
+        // Reset to default when no input
+        setTargetCharacters(280)
+      }
+    }
+  }, [input.length, mode])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
@@ -291,18 +312,18 @@ export default function AIThreadEditor() {
                 <div className="flex items-center gap-3">
                   <input
                     type="range"
-                    min="100"
-                    max="500"
+                    min="50"
+                    max={input.length > 0 ? input.length : 280}
                     value={targetCharacters}
                     onChange={(e) => setTargetCharacters(Number(e.target.value))}
                     className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                   />
-                  <span className="text-base sm:text-lg font-bold text-blue-600 min-w-[50px] text-center">
-                    {targetCharacters}
+                  <span className="text-base sm:text-lg font-bold text-blue-600 min-w-[80px] text-center">
+                    {targetCharacters} / {input.length > 0 ? input.length : 280}
                   </span>
                 </div>
                 <div className="text-xs sm:text-sm text-gray-600">
-                  Drag to adjust the target character limit for shortening
+                  Drag to adjust the target character limit for shortening. Current: {targetCharacters} characters
                 </div>
               </div>
             </CardContent>

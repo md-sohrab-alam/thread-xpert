@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Wand2, Split, Sparkles, Copy, Loader2, Edit3, Check, X } from 'lucide-react'
+import { Wand2, Split, Sparkles, Copy, Loader2, Edit3, Check, X, Linkedin, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -13,6 +13,11 @@ interface EditableResult {
   isEditing: boolean
 }
 
+interface RateLimitInfo {
+  remaining: number
+  resetTime: number
+}
+
 export default function AIThreadEditor() {
   const [input, setInput] = useState('')
   const [result, setResult] = useState<EditableResult[]>([])
@@ -21,6 +26,11 @@ export default function AIThreadEditor() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null)
+  const [showRateLimitPopup, setShowRateLimitPopup] = useState(false)
+  const [autoNumberTweets, setAutoNumberTweets] = useState(false)
+  const [numberingFormat, setNumberingFormat] = useState('{current}/{total}')
+  const [targetLanguage, setTargetLanguage] = useState('same')
 
   const handleProcess = async () => {
     if (!input.trim()) return
@@ -28,6 +38,15 @@ export default function AIThreadEditor() {
     setIsLoading(true)
     setError('')
     setResult([])
+
+    // Track the action with Google Analytics
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'process_text', {
+        event_category: 'ai_processing',
+        event_label: mode,
+        value: input.length
+      })
+    }
 
     try {
       const response = await fetch('/api/process', {
@@ -39,6 +58,7 @@ export default function AIThreadEditor() {
           text: input,
           mode: mode,
           targetCharacters: mode === 'shorten' ? targetCharacters : undefined,
+          targetLanguage: targetLanguage !== 'same' ? targetLanguage : undefined,
         }),
       })
 
@@ -48,6 +68,11 @@ export default function AIThreadEditor() {
         throw new Error(data.error || 'Failed to process text')
       }
 
+      // Update rate limit info
+      if (data.rateLimit) {
+        setRateLimit(data.rateLimit)
+      }
+
       // Convert result to editable format
       const editableResults: EditableResult[] = (data.result || []).map((text: string, index: number) => ({
         id: `result-${index}`,
@@ -55,10 +80,27 @@ export default function AIThreadEditor() {
         isEditing: false
       }))
       
-      setResult(editableResults)
+      // Apply auto-numbering for split mode
+      if (mode === 'split' && autoNumberTweets) {
+        const numberedResults = formatTweetsWithNumbers(editableResults.map(r => r.text))
+        setResult(numberedResults.map((text, index) => ({
+          id: `result-${index}`,
+          text: text,
+          isEditing: false
+        })))
+      } else {
+        setResult(editableResults)
+      }
     } catch (err) {
       console.error('Error processing text:', err)
-      setError(err instanceof Error ? err.message : 'Failed to process text')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process text'
+      
+      // Check if it's a rate limit error
+      if (errorMessage.includes('Rate limit exceeded')) {
+        setShowRateLimitPopup(true)
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -67,6 +109,16 @@ export default function AIThreadEditor() {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
+      
+      // Track copy action
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'copy', {
+          event_category: 'engagement',
+          event_label: 'copy_result',
+          value: text.length
+        })
+      }
+      
       // You could add a toast notification here
     } catch (err) {
       console.error('Failed to copy text: ', err)
@@ -112,6 +164,24 @@ export default function AIThreadEditor() {
     return mode === 'split' ? 280 : targetCharacters
   }
 
+  const formatResetTime = (resetTime: number) => {
+    const date = new Date(resetTime)
+    return date.toLocaleString()
+  }
+
+  const formatTweetsWithNumbers = (tweets: string[]) => {
+    if (!autoNumberTweets || tweets.length <= 1) return tweets
+    
+    return tweets.map((tweet, index) => {
+      const current = index + 1
+      const total = tweets.length
+      const number = numberingFormat
+        .replace('{current}', current.toString())
+        .replace('{total}', total.toString())
+      return `${number} ${tweet}`
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-3 sm:p-4 lg:p-6">
       <div className="container mx-auto max-w-4xl">
@@ -124,6 +194,25 @@ export default function AIThreadEditor() {
             Transform your text into perfect social media posts with AI
           </p>
         </div>
+
+        {/* Rate Limit Info */}
+        {rateLimit && (
+          <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-gray-600">
+                    Daily API Limit: <span className="font-semibold">{rateLimit.remaining}</span> requests remaining
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Resets: {formatResetTime(rateLimit.resetTime)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Input Card */}
         <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
@@ -140,6 +229,52 @@ export default function AIThreadEditor() {
                 <span className={`font-medium ${input.length > 0 ? 'text-blue-600' : ''}`}>
                   {input.length} characters
                 </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Language Translation Options */}
+        <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base sm:text-lg">Language Options</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <label htmlFor="targetLanguage" className="text-sm font-medium text-gray-700 min-w-[120px]">
+                  Output Language:
+                </label>
+                <select
+                  id="targetLanguage"
+                  value={targetLanguage}
+                  onChange={(e) => setTargetLanguage(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="same">Keep original language</option>
+                  <option value="english">English</option>
+                  <option value="hindi">Hindi</option>
+                  <option value="spanish">Spanish</option>
+                  <option value="french">French</option>
+                  <option value="german">German</option>
+                  <option value="italian">Italian</option>
+                  <option value="portuguese">Portuguese</option>
+                  <option value="russian">Russian</option>
+                  <option value="chinese">Chinese</option>
+                  <option value="japanese">Japanese</option>
+                  <option value="korean">Korean</option>
+                  <option value="arabic">Arabic</option>
+                  <option value="bengali">Bengali</option>
+                  <option value="urdu">Urdu</option>
+                  <option value="tamil">Tamil</option>
+                  <option value="telugu">Telugu</option>
+                  <option value="marathi">Marathi</option>
+                  <option value="gujarati">Gujarati</option>
+                  <option value="punjabi">Punjabi</option>
+                </select>
+              </div>
+              <div className="text-xs sm:text-sm text-gray-600">
+                Choose the language for your output. Select "Keep original language" to preserve the input language.
               </div>
             </div>
           </CardContent>
@@ -168,6 +303,51 @@ export default function AIThreadEditor() {
                 </div>
                 <div className="text-xs sm:text-sm text-gray-600">
                   Drag to adjust the target character limit for shortening
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Auto-number Tweets for Split Mode */}
+        {mode === 'split' && (
+          <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base sm:text-lg">Thread Options</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="autoNumberTweets"
+                    checked={autoNumberTweets}
+                    onChange={(e) => setAutoNumberTweets(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <label htmlFor="autoNumberTweets" className="text-sm font-medium text-gray-700">
+                    Auto-number tweets
+                  </label>
+                </div>
+                {autoNumberTweets && (
+                  <div className="space-y-2">
+                    <div className="text-xs sm:text-sm text-gray-600">
+                      Numbering format (use {`{current}`} for current number, {`{total}`} for total count):
+                    </div>
+                    <input
+                      type="text"
+                      value={numberingFormat}
+                      onChange={(e) => setNumberingFormat(e.target.value)}
+                      placeholder="e.g., {current}/{total}, {current}:, {current}."
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <div className="text-xs text-gray-500">
+                      Examples: "1/8", "1:", "1.", "Tweet 1 of 8"
+                    </div>
+                  </div>
+                )}
+                <div className="text-xs sm:text-sm text-gray-600">
+                  Automatically add numbering to each tweet in the thread
                 </div>
               </div>
             </CardContent>
@@ -230,6 +410,55 @@ export default function AIThreadEditor() {
           </Card>
         )}
 
+        {/* Rate Limit Popup */}
+        {showRateLimitPopup && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <Card className="max-w-md w-full bg-white shadow-2xl border-0">
+              <CardContent className="p-6 text-center">
+                <div className="text-4xl mb-4">⚠️</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  Daily limit reached.
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  To prevent abuse, we've added basic usage restrictions.
+                </p>
+                <p className="text-gray-600 mb-4">
+                  👉 Premium version launching soon with unlimited access and exclusive features.
+                </p>
+                <p className="text-gray-600 mb-6">
+                  📩 Interested in early access or full service? Connect with me on LinkedIn
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowRateLimitPopup(false)}
+                    className="flex-1 bg-gray-600 hover:bg-gray-700"
+                  >
+                    Close
+                  </Button>
+                                     <Button
+                     onClick={() => {
+                       // Track LinkedIn click
+                       if (typeof window !== 'undefined' && (window as any).gtag) {
+                         (window as any).gtag('event', 'click', {
+                           event_category: 'engagement',
+                           event_label: 'linkedin_connect',
+                           value: 1
+                         })
+                       }
+                       window.open('https://www.linkedin.com/in/mohammad-sohrab-alam-8105474b/', '_blank')
+                       setShowRateLimitPopup(false)
+                     }}
+                     className="flex-1 bg-blue-600 hover:bg-blue-700"
+                   >
+                     <Linkedin className="h-4 w-4 mr-2" />
+                     Connect on LinkedIn
+                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Results */}
         {result.length > 0 && (
           <div className="space-y-4 sm:space-y-6">
@@ -281,7 +510,7 @@ export default function AIThreadEditor() {
                   <div className="flex flex-col lg:flex-row justify-between items-start gap-3">
                     <div className="flex-1 w-full">
                       <div className="text-xs sm:text-sm text-gray-500 mb-2 font-medium">
-                        {mode === 'split' ? `Thread ${index + 1}` : 'AI Result'}
+                        {mode === 'split' && !autoNumberTweets ? `Thread ${index + 1}` : mode === 'split' ? 'Thread' : 'AI Result'}
                       </div>
                       
                       {item.isEditing ? (
@@ -351,6 +580,26 @@ export default function AIThreadEditor() {
             ))}
           </div>
         )}
+
+        {/* Footer */}
+        <footer className="text-center text-sm text-gray-500 mt-8 sm:mt-12 mb-4">
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+              <span>© 2025 <strong className="text-gray-700">Thread Xpert</strong> by Sohrab</span>
+              <div className="flex items-center gap-4">
+                                 <a 
+                   href="https://www.linkedin.com/in/mohammad-sohrab-alam-8105474b/" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors"
+                 >
+                   <Linkedin className="h-4 w-4" />
+                   LinkedIn
+                 </a>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   )

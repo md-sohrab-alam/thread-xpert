@@ -6,9 +6,9 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AI Thread Editor - Transform Text for Social Media | Thread Xpert',
-  description: 'Free AI-powered tool to edit, translate, and format text for Twitter/X threads, Instagram posts, and social media. Fix grammar, make content viral, and create engaging threads in 20+ languages.',
-  keywords: 'AI text editor, Twitter thread generator, social media content, grammar checker, viral content, thread creator, X posts, Instagram captions, multilingual content',
+  title: 'Universal Social Media Content Generator - Create & Polish Content for All Platforms | Thread Xpert',
+  description: 'Free AI-powered tool to create and polish content for Twitter, LinkedIn, Email, Instagram, and WhatsApp. Generate content from context or polish existing content with platform-specific formatting.',
+  keywords: 'social media content generator, content creation, Twitter posts, LinkedIn posts, email writing, Instagram captions, WhatsApp messages, AI content tool, content polishing, multi-platform content',
   authors: [{ name: 'Sohrab Alam' }],
   creator: 'Sohrab Alam',
   publisher: 'Thread Xpert',
@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   themeColor: '#3b82f6',
   openGraph: {
-    title: 'AI Thread Editor - Transform Text for Social Media',
-    description: 'Free AI-powered tool to edit, translate, and format text for Twitter/X threads, Instagram posts, and social media. Fix grammar, make content viral, and create engaging threads in 20+ languages.',
+    title: 'Universal Social Media Content Generator - Create & Polish Content for All Platforms',
+    description: 'Free AI-powered tool to create and polish content for Twitter, LinkedIn, Email, Instagram, and WhatsApp. Generate content from context or polish existing content with platform-specific formatting.',
     url: 'https://thread-xpert.vercel.app',
     siteName: 'Thread Xpert',
     images: [
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'AI Thread Editor - Transform your text into perfect social media posts',
+        alt: 'Universal Social Media Content Generator - Create and polish content for all platforms',
       },
     ],
     locale: 'en_US',
@@ -45,8 +45,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Thread Editor - Transform Text for Social Media',
-    description: 'Free AI-powered tool to edit, translate, and format text for Twitter/X threads, Instagram posts, and social media.',
+    title: 'Universal Social Media Content Generator - Create & Polish Content for All Platforms',
+    description: 'Free AI-powered tool to create and polish content for Twitter, LinkedIn, Email, Instagram, and WhatsApp.',
     images: ['/og-image.png'],
     creator: '@sohrab_alam',
   },
@@ -96,8 +96,8 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebApplication",
-              "name": "AI Thread Editor",
-              "description": "Free AI-powered tool to edit, translate, and format text for Twitter/X threads, Instagram posts, and social media.",
+              "name": "Universal Social Media Content Generator",
+              "description": "Free AI-powered tool to create and polish content for Twitter, LinkedIn, Email, Instagram, and WhatsApp. Generate content from context or polish existing content with platform-specific formatting.",
               "url": "https://thread-xpert.vercel.app",
               "applicationCategory": "ProductivityApplication",
               "operatingSystem": "Web Browser",

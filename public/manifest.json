@@ -1,7 +1,7 @@
 {
-  "name": "AI Thread Editor - Thread Xpert",
+  "name": "Universal Social Media Content Generator - Thread Xpert",
   "short_name": "Thread Xpert",
-  "description": "Free AI-powered tool to edit, translate, and format text for Twitter/X threads, Instagram posts, and social media.",
+  "description": "Free AI-powered tool to create and polish content for Twitter, LinkedIn, Email, Instagram, and WhatsApp. Generate content from context or polish existing content with platform-specific formatting.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

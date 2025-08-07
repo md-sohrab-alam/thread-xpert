@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wand2, Split, Sparkles, Copy, Loader2, Edit3, Check, X, Linkedin, AlertCircle } from 'lucide-react'
+import { Wand2, Split, Sparkles, Copy, Loader2, Edit3, Check, X, Linkedin, AlertCircle, Twitter, Mail, Instagram, MessageCircle, Plus, Minus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -11,6 +11,7 @@ interface EditableResult {
   id: string
   text: string
   isEditing: boolean
+  platform: string
 }
 
 interface RateLimitInfo {
@@ -18,40 +19,42 @@ interface RateLimitInfo {
   resetTime: number
 }
 
+const PLATFORMS = [
+  { id: 'twitter', name: 'Twitter', icon: Twitter, color: 'text-blue-400' },
+  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-blue-600' },
+  { id: 'email', name: 'Email', icon: Mail, color: 'text-gray-600' },
+  { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-500' },
+  { id: 'whatsapp', name: 'WhatsApp Status', icon: MessageCircle, color: 'text-green-500' }
+]
+
+const TONES = [
+  { id: 'professional', name: 'Professional' },
+  { id: 'casual', name: 'Casual' },
+  { id: 'motivational', name: 'Motivational' },
+  { id: 'witty', name: 'Witty' },
+  { id: 'persuasive', name: 'Persuasive' }
+]
+
+const PERSONAS = [
+  { id: 'general-user', name: 'General User' },
+  { id: 'tech-founder', name: 'Tech Founder' },
+  { id: 'marketer', name: 'Marketer' },
+  { id: 'hr-manager', name: 'HR Manager' },
+  { id: 'influencer', name: 'Influencer' }
+]
+
 export default function AIThreadEditor() {
+  const [inputType, setInputType] = useState<'context' | 'content'>('context')
   const [input, setInput] = useState('')
   const [result, setResult] = useState<EditableResult[]>([])
-  const [mode, setMode] = useState('grammar')
-  const [targetCharacters, setTargetCharacters] = useState(280)
-  
-  // Update target characters when input changes (for shorten mode)
-  useEffect(() => {
-    if (mode === 'shorten') {
-      if (input.length > 0) {
-        // Calculate default target: 50% of input if < 280, else 280
-        const defaultTarget = input.length < 280 ? Math.floor(input.length * 0.5) : 280
-        
-        // If current target is higher than input length, adjust it
-        if (targetCharacters > input.length) {
-          setTargetCharacters(input.length)
-        } else if (targetCharacters < 50) {
-          // Set to default if target is too low
-          setTargetCharacters(defaultTarget)
-        }
-      } else {
-        // Reset to default when no input
-        setTargetCharacters(280)
-      }
-    }
-  }, [input.length, mode])
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['twitter'])
+  const [tone, setTone] = useState('professional')
+  const [persona, setPersona] = useState('general-user')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null)
   const [showRateLimitPopup, setShowRateLimitPopup] = useState(false)
-  const [autoNumberTweets, setAutoNumberTweets] = useState(false)
-  const [numberingFormat, setNumberingFormat] = useState('{current}/{total}')
-  const [targetLanguage, setTargetLanguage] = useState('same')
 
   const handleProcess = async () => {
     if (!input.trim()) return
@@ -64,7 +67,7 @@ export default function AIThreadEditor() {
     if (typeof window !== 'undefined' && (window as any).gtag) {
       (window as any).gtag('event', 'process_text', {
         event_category: 'ai_processing',
-        event_label: mode,
+        event_label: inputType,
         value: input.length
       })
     }
@@ -76,10 +79,11 @@ export default function AIThreadEditor() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          inputType,
           text: input,
-          mode: mode,
-          targetCharacters: mode === 'shorten' ? targetCharacters : undefined,
-          targetLanguage: targetLanguage !== 'same' ? targetLanguage : undefined,
+          platforms: selectedPlatforms,
+          tone,
+          persona,
         }),
       })
 
@@ -95,23 +99,14 @@ export default function AIThreadEditor() {
       }
 
       // Convert result to editable format
-      const editableResults: EditableResult[] = (data.result || []).map((text: string, index: number) => ({
+      const editableResults: EditableResult[] = (data.result || []).map((item: any, index: number) => ({
         id: `result-${index}`,
-        text: text,
+        text: item.content,
+        platform: item.platform,
         isEditing: false
       }))
       
-      // Apply auto-numbering for split mode
-      if (mode === 'split' && autoNumberTweets) {
-        const numberedResults = formatTweetsWithNumbers(editableResults.map(r => r.text))
-        setResult(numberedResults.map((text, index) => ({
-          id: `result-${index}`,
-          text: text,
-          isEditing: false
-        })))
-      } else {
-        setResult(editableResults)
-      }
+      setResult(editableResults)
     } catch (err) {
       console.error('Error processing text:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to process text'
@@ -170,19 +165,42 @@ export default function AIThreadEditor() {
     ))
   }
 
+  const togglePlatform = (platformId: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platformId) 
+        ? prev.filter(p => p !== platformId)
+        : [...prev, platformId]
+    )
+  }
+
   const getCharacterCount = (text: string) => {
     return text.length
   }
 
-  const getCharacterStatus = (count: number) => {
-    const limit = mode === 'split' ? 280 : targetCharacters
+  const getCharacterStatus = (count: number, platform: string) => {
+    const limits: { [key: string]: number } = {
+      twitter: 280,
+      linkedin: 3000,
+      email: 5000,
+      instagram: 2200,
+      whatsapp: 139
+    }
+    const limit = limits[platform] || 280
+    
     if (count <= limit) return 'text-green-600'
     if (count <= limit + 40) return 'text-yellow-600'
     return 'text-red-600'
   }
 
-  const getCharacterLimit = () => {
-    return mode === 'split' ? 280 : targetCharacters
+  const getCharacterLimit = (platform: string) => {
+    const limits: { [key: string]: number } = {
+      twitter: 280,
+      linkedin: 3000,
+      email: 5000,
+      instagram: 2200,
+      whatsapp: 139
+    }
+    return limits[platform] || 280
   }
 
   const formatResetTime = (resetTime: number) => {
@@ -190,17 +208,14 @@ export default function AIThreadEditor() {
     return date.toLocaleString()
   }
 
-  const formatTweetsWithNumbers = (tweets: string[]) => {
-    if (!autoNumberTweets || tweets.length <= 1) return tweets
-    
-    return tweets.map((tweet, index) => {
-      const current = index + 1
-      const total = tweets.length
-      const number = numberingFormat
-        .replace('{current}', current.toString())
-        .replace('{total}', total.toString())
-      return `${number} ${tweet}`
-    })
+  const getPlatformIcon = (platformId: string) => {
+    const platform = PLATFORMS.find(p => p.id === platformId)
+    return platform?.icon || Twitter
+  }
+
+  const getPlatformColor = (platformId: string) => {
+    const platform = PLATFORMS.find(p => p.id === platformId)
+    return platform?.color || 'text-gray-600'
   }
 
   return (
@@ -209,10 +224,10 @@ export default function AIThreadEditor() {
         {/* Header */}
         <div className="text-center mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-            AI Thread Editor ✨
+            Universal Social Media Content Generator ✨
           </h1>
           <p className="text-gray-600 text-sm sm:text-base max-w-xl mx-auto">
-            Transform your text into perfect social media posts with AI
+            Create and polish content for all social media platforms with AI
           </p>
         </div>
 
@@ -235,18 +250,49 @@ export default function AIThreadEditor() {
           </Card>
         )}
 
+        {/* Input Type Selection */}
+        <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base sm:text-lg">Input Mode</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={inputType} onValueChange={(value) => setInputType(value as 'context' | 'content')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 gap-2 h-auto bg-gray-100 p-1 rounded-xl">
+                <TabsTrigger value="context" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all">
+                  <Wand2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="text-xs font-medium">Context to Content</span>
+                </TabsTrigger>
+                <TabsTrigger value="content" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all">
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="text-xs font-medium">Content Polishing</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            <div className="mt-3 text-xs sm:text-sm text-gray-600">
+              {inputType === 'context' 
+                ? "Provide a short context or intent, and AI will generate content for selected platforms."
+                : "Paste your content and AI will format and polish it for selected platforms."
+              }
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Main Input Card */}
         <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="space-y-3">
               <Textarea
-                placeholder="Paste or type your text here..."
+                placeholder={inputType === 'context' 
+                  ? "e.g., 'Apply for 2 days leave', 'Tweet about 25% tariff hike', 'Bio for female founder from India'"
+                  : "Paste or write your content here..."
+                }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="min-h-[120px] sm:min-h-[140px] lg:min-h-[160px] resize-none text-sm sm:text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl shadow-sm"
               />
               <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500">
-                <span>Ready to process your text</span>
+                <span>{inputType === 'context' ? 'Ready to generate content' : 'Ready to polish content'}</span>
                 <span className={`font-medium ${input.length > 0 ? 'text-blue-600' : ''}`}>
                   {input.length} characters
                 </span>
@@ -255,149 +301,74 @@ export default function AIThreadEditor() {
           </CardContent>
         </Card>
 
-        {/* Language Translation Options */}
+        {/* Platform Selection */}
         <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base sm:text-lg">Language Options</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Select Platforms</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <label htmlFor="targetLanguage" className="text-sm font-medium text-gray-700 min-w-[120px]">
-                  Output Language:
-                </label>
-                <select
-                  id="targetLanguage"
-                  value={targetLanguage}
-                  onChange={(e) => setTargetLanguage(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="same">Keep original language</option>
-                  <option value="english">English</option>
-                  <option value="hindi">Hindi</option>
-                  <option value="spanish">Spanish</option>
-                  <option value="french">French</option>
-                  <option value="german">German</option>
-                  <option value="italian">Italian</option>
-                  <option value="portuguese">Portuguese</option>
-                  <option value="russian">Russian</option>
-                  <option value="chinese">Chinese</option>
-                  <option value="japanese">Japanese</option>
-                  <option value="korean">Korean</option>
-                  <option value="arabic">Arabic</option>
-                  <option value="bengali">Bengali</option>
-                  <option value="urdu">Urdu</option>
-                  <option value="tamil">Tamil</option>
-                  <option value="telugu">Telugu</option>
-                  <option value="marathi">Marathi</option>
-                  <option value="gujarati">Gujarati</option>
-                  <option value="punjabi">Punjabi</option>
-                </select>
-              </div>
-              <div className="text-xs sm:text-sm text-gray-600">
-                Choose the language for your output. Select "Keep original language" to preserve the input language.
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {PLATFORMS.map((platform) => {
+                const Icon = platform.icon
+                const isSelected = selectedPlatforms.includes(platform.id)
+                return (
+                  <button
+                    key={platform.id}
+                    onClick={() => togglePlatform(platform.id)}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      isSelected 
+                        ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 ${platform.color}`} />
+                    <span className="text-xs font-medium">{platform.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-3 text-xs sm:text-sm text-gray-600">
+              Select the platforms where you want to create or format content
             </div>
           </CardContent>
         </Card>
 
-        {/* Target Characters for Shorten Mode */}
-        {mode === 'shorten' && (
-          <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base sm:text-lg">Target Character Limit</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min="50"
-                    max={input.length > 0 ? input.length : 280}
-                    value={targetCharacters}
-                    onChange={(e) => setTargetCharacters(Number(e.target.value))}
-                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                  <span className="text-base sm:text-lg font-bold text-blue-600 min-w-[80px] text-center">
-                    {targetCharacters} / {input.length > 0 ? input.length : 280}
-                  </span>
-                </div>
-                <div className="text-xs sm:text-sm text-gray-600">
-                  Drag to adjust the target character limit for shortening. Current: {targetCharacters} characters
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Auto-number Tweets for Split Mode */}
-        {mode === 'split' && (
-          <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base sm:text-lg">Thread Options</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="autoNumberTweets"
-                    checked={autoNumberTweets}
-                    onChange={(e) => setAutoNumberTweets(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                  />
-                  <label htmlFor="autoNumberTweets" className="text-sm font-medium text-gray-700">
-                    Auto-number tweets
-                  </label>
-                </div>
-                {autoNumberTweets && (
-                  <div className="space-y-2">
-                    <div className="text-xs sm:text-sm text-gray-600">
-                      Numbering format (use {`{current}`} for current number, {`{total}`} for total count):
-                    </div>
-                    <input
-                      type="text"
-                      value={numberingFormat}
-                      onChange={(e) => setNumberingFormat(e.target.value)}
-                      placeholder="e.g., {current}/{total}, {current}:, {current}."
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <div className="text-xs text-gray-500">
-                      Examples: "1/8", "1:", "1.", "Tweet 1 of 8"
-                    </div>
-                  </div>
-                )}
-                <div className="text-xs sm:text-sm text-gray-600">
-                  Automatically add numbering to each tweet in the thread
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Tabs */}
+        {/* Tone and Persona Selection */}
         <Card className="mb-4 sm:mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-          <CardContent className="p-3 sm:p-4">
-            <Tabs value={mode} onValueChange={setMode} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-2 h-auto bg-gray-100 p-1 rounded-xl">
-                <TabsTrigger value="grammar" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all">
-                  <Wand2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="text-xs font-medium">Fix Grammar</span>
-                </TabsTrigger>
-                <TabsTrigger value="split" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all">
-                  <Split className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="text-xs font-medium">Split for X</span>
-                </TabsTrigger>
-                <TabsTrigger value="shorten" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all">
-                  <span className="text-sm sm:text-base">✂️</span>
-                  <span className="text-xs font-medium">Shorten</span>
-                </TabsTrigger>
-                <TabsTrigger value="viral" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all">
-                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="text-xs font-medium">Make Viral</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base sm:text-lg">Style & Persona</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                <select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  {TONES.map((toneOption) => (
+                    <option key={toneOption.id} value={toneOption.id}>
+                      {toneOption.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Persona</label>
+                <select
+                  value={persona}
+                  onChange={(e) => setPersona(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  {PERSONAS.map((personaOption) => (
+                    <option key={personaOption.id} value={personaOption.id}>
+                      {personaOption.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -405,7 +376,7 @@ export default function AIThreadEditor() {
         <Button
           onClick={handleProcess}
           className="w-full mb-4 sm:mb-6 h-12 sm:h-14 text-base sm:text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
-          disabled={!input.trim() || isLoading}
+          disabled={!input.trim() || selectedPlatforms.length === 0 || isLoading}
         >
           {isLoading ? (
             <>
@@ -415,7 +386,7 @@ export default function AIThreadEditor() {
           ) : (
             <>
               <span className="text-lg sm:text-xl mr-2">💡</span>
-              Process with AI
+              Generate Content
             </>
           )}
         </Button>
@@ -456,24 +427,24 @@ export default function AIThreadEditor() {
                   >
                     Close
                   </Button>
-                                     <Button
-                     onClick={() => {
-                       // Track LinkedIn click
-                       if (typeof window !== 'undefined' && (window as any).gtag) {
-                         (window as any).gtag('event', 'click', {
-                           event_category: 'engagement',
-                           event_label: 'linkedin_connect',
-                           value: 1
-                         })
-                       }
-                       window.open('https://www.linkedin.com/in/mohammad-sohrab-alam-8105474b/', '_blank')
-                       setShowRateLimitPopup(false)
-                     }}
-                     className="flex-1 bg-blue-600 hover:bg-blue-700"
-                   >
-                     <Linkedin className="h-4 w-4 mr-2" />
-                     Connect on LinkedIn
-                   </Button>
+                  <Button
+                    onClick={() => {
+                      // Track LinkedIn click
+                      if (typeof window !== 'undefined' && (window as any).gtag) {
+                        (window as any).gtag('event', 'click', {
+                          event_category: 'engagement',
+                          event_label: 'linkedin_connect',
+                          value: 1
+                        })
+                      }
+                      window.open('https://www.linkedin.com/in/mohammad-sohrab-alam-8105474b/', '_blank')
+                      setShowRateLimitPopup(false)
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Linkedin className="h-4 w-4 mr-2" />
+                    Connect on LinkedIn
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -485,122 +456,92 @@ export default function AIThreadEditor() {
           <div className="space-y-4 sm:space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                AI Results
+                Generated Content
               </h2>
-              {mode === 'split' && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="flex items-center gap-2 bg-white/80 backdrop-blur-sm hover:bg-white transition-all text-sm"
-                >
-                  {showPreview ? 'Hide' : 'Show'} X Preview
-                </Button>
-              )}
             </div>
 
-            {/* X Preview */}
-            {showPreview && mode === 'split' && (
-              <Card className="mb-4 sm:mb-6 bg-black text-white shadow-2xl border-0">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="max-w-sm mx-auto">
-                    <div className="bg-black rounded-xl p-3 sm:p-4 border border-gray-700 shadow-inner">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 bg-gray-600 rounded-full"></div>
-                        <div>
-                          <div className="font-semibold text-white text-sm">Your Name</div>
-                          <div className="text-gray-400 text-xs">@username</div>
+            {result.map((item, index) => {
+              const PlatformIcon = getPlatformIcon(item.platform)
+              const platformColor = getPlatformColor(item.platform)
+              
+              return (
+                <Card key={item.id} className="relative shadow-lg border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-200">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex flex-col lg:flex-row justify-between items-start gap-3">
+                      <div className="flex-1 w-full">
+                        <div className="flex items-center gap-2 mb-2">
+                          <PlatformIcon className={`h-4 w-4 ${platformColor}`} />
+                          <span className="text-xs sm:text-sm text-gray-500 font-medium capitalize">
+                            {item.platform}
+                          </span>
                         </div>
-                      </div>
-                      {result.map((item, index) => (
-                        <div key={item.id} className="mb-3 last:mb-0">
-                          <div className="text-xs text-gray-400 mb-1">
-                            {index + 1}/{result.length}
+                        
+                        {item.isEditing ? (
+                          <div className="space-y-3">
+                            <Textarea
+                              value={item.text}
+                              onChange={(e) => updateEditText(item.id, e.target.value)}
+                              className="min-h-[80px] sm:min-h-[100px] resize-none text-sm border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => saveEdit(item.id, item.text)}
+                                className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-xs"
+                              >
+                                <Check className="h-3 w-3" />
+                                Save
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => cancelEdit(item.id)}
+                                className="flex items-center gap-1 text-xs"
+                              >
+                                <X className="h-3 w-3" />
+                                Cancel
+                              </Button>
+                            </div>
                           </div>
-                          <div className="text-white text-sm leading-relaxed">{item.text}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {result.map((item, index) => (
-              <Card key={item.id} className="relative shadow-lg border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-200">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex flex-col lg:flex-row justify-between items-start gap-3">
-                    <div className="flex-1 w-full">
-                      {mode === 'split' && (
-                        <div className="text-xs sm:text-sm text-gray-500 mb-2 font-medium">
-                          {!autoNumberTweets ? `Thread ${index + 1}` : 'Thread'}
-                        </div>
-                      )}
-                      
-                      {item.isEditing ? (
-                        <div className="space-y-3">
-                          <Textarea
-                            value={item.text}
-                            onChange={(e) => updateEditText(item.id, e.target.value)}
-                            className="min-h-[80px] sm:min-h-[100px] resize-none text-sm border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => saveEdit(item.id, item.text)}
-                              className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-xs"
-                            >
-                              <Check className="h-3 w-3" />
-                              Save
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => cancelEdit(item.id)}
-                              className="flex items-center gap-1 text-xs"
-                            >
-                              <X className="h-3 w-3" />
-                              Cancel
-                            </Button>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-gray-900 text-sm sm:text-base leading-relaxed">
+                            {item.text}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="whitespace-pre-wrap text-gray-900 text-sm sm:text-base leading-relaxed">
-                          {item.text}
-                        </div>
-                      )}
-                      
-                      <div className={`text-xs mt-3 font-medium ${getCharacterStatus(getCharacterCount(item.text))}`}>
-                        {getCharacterCount(item.text)} characters
-                        {getCharacterCount(item.text) > getCharacterLimit() && (
-                          <span className="text-red-600 ml-1">(Over limit!)</span>
                         )}
+                        
+                        <div className={`text-xs mt-3 font-medium ${getCharacterStatus(getCharacterCount(item.text), item.platform)}`}>
+                          {getCharacterCount(item.text)} characters
+                          {getCharacterCount(item.text) > getCharacterLimit(item.platform) && (
+                            <span className="text-red-600 ml-1">(Over limit!)</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 flex-shrink-0 w-full lg:w-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEditing(item.id)}
+                          className="flex items-center gap-1 bg-white/80 backdrop-blur-sm hover:bg-white transition-all flex-1 lg:flex-none text-xs"
+                        >
+                          <Edit3 className="h-3 w-3" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(item.text)}
+                          className="flex items-center gap-1 bg-white/80 backdrop-blur-sm hover:bg-white transition-all flex-1 lg:flex-none text-xs"
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copy
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="flex gap-2 flex-shrink-0 w-full lg:w-auto">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => startEditing(item.id)}
-                        className="flex items-center gap-1 bg-white/80 backdrop-blur-sm hover:bg-white transition-all flex-1 lg:flex-none text-xs"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(item.text)}
-                        className="flex items-center gap-1 bg-white/80 backdrop-blur-sm hover:bg-white transition-all flex-1 lg:flex-none text-xs"
-                      >
-                        <Copy className="h-3 w-3" />
-                        Copy
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
 
@@ -610,15 +551,15 @@ export default function AIThreadEditor() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
               <span>© 2025 <strong className="text-gray-700">Thread Xpert</strong> by Sohrab</span>
               <div className="flex items-center gap-4">
-                                 <a 
-                   href="https://www.linkedin.com/in/mohammad-sohrab-alam-8105474b/" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors"
-                 >
-                   <Linkedin className="h-4 w-4" />
-                   LinkedIn
-                 </a>
+                <a 
+                  href="https://www.linkedin.com/in/mohammad-sohrab-alam-8105474b/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  <Linkedin className="h-4 w-4" />
+                  LinkedIn
+                </a>
               </div>
             </div>
           </div>

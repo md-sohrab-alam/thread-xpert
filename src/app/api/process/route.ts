@@ -54,6 +54,34 @@ function checkRateLimit(request: NextRequest): { allowed: boolean; remaining: nu
   }
 }
 
+const PLATFORM_GUIDELINES = {
+  twitter: {
+    maxLength: 280,
+    style: "Short, punchy, engaging. Use hashtags sparingly. Split into threads if needed.",
+    format: "Single tweet or thread format"
+  },
+  linkedin: {
+    maxLength: 3000,
+    style: "Professional, thought leadership. Use paragraphs. Include call-to-action.",
+    format: "Professional post with proper formatting"
+  },
+  email: {
+    maxLength: 5000,
+    style: "Formal, clear, professional. Include subject line, greeting, body, sign-off.",
+    format: "Complete email with subject line and proper structure"
+  },
+  instagram: {
+    maxLength: 2200,
+    style: "Visual, engaging, emoji-friendly. Use relevant hashtags. Include call-to-action.",
+    format: "Instagram caption with emojis and hashtags"
+  },
+  whatsapp: {
+    maxLength: 139,
+    style: "Short, personal, status-like. Keep it brief and meaningful. Use emojis sparingly.",
+    format: "WhatsApp status update"
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check rate limit first
@@ -73,11 +101,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { text, mode, targetCharacters = 280, targetLanguage } = await request.json()
+    const { inputType, text, platforms, tone, persona } = await request.json()
 
-    if (!text || !mode) {
+    if (!text || !inputType || !platforms || platforms.length === 0) {
       return NextResponse.json(
-        { error: 'Text and mode are required' },
+        { error: 'Text, inputType, and platforms are required' },
         { status: 400 }
       )
     }
@@ -92,158 +120,99 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let prompt = ''
-    let systemPrompt = ''
+    const results = []
 
-    switch (mode) {
-      case 'grammar':
-        systemPrompt = `You are a professional editor.
+    // Generate content for each selected platform
+    for (const platform of platforms) {
+      const guidelines = PLATFORM_GUIDELINES[platform as keyof typeof PLATFORM_GUIDELINES]
+      if (!guidelines) continue
 
-Given the input text, correct any grammar, spelling, or punctuation errors. Do not change the meaning or tone. Preserve line breaks, formatting, and emojis.
+      let systemPrompt = ''
+      let userPrompt = ''
 
-${targetLanguage && targetLanguage !== 'same' ? `IMPORTANT: Translate the text to ${targetLanguage} while correcting grammar and spelling.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
+      if (inputType === 'context') {
+        // Mode 1: Context to Content
+        systemPrompt = `You are an expert content creator specializing in ${platform} content.
 
-Only make changes if they improve clarity or correctness.
+Your task is to generate ${platform} content based on the user's context/intent.
 
-Return only the corrected text without explanations.`
-        prompt = `Input:
-${text}
+Platform Guidelines for ${platform}:
+- Style: ${guidelines.style}
+- Format: ${guidelines.format}
+- Max Length: ${guidelines.maxLength} characters
+- Tone: ${tone}
+- Persona: ${persona}
 
-Output:`
-        break
+IMPORTANT RULES:
+1. Generate content that fits the ${platform} platform perfectly
+2. Respect the ${guidelines.maxLength} character limit
+3. Use the specified ${tone} tone and ${persona} persona
+4. Make it engaging and platform-appropriate
+5. Return only the generated content, no explanations
 
-      case 'split':
-        systemPrompt = `You are an expert at writing X (Twitter) threads.
+For Twitter: Create engaging tweets that can be part of a thread if needed
+For LinkedIn: Create professional, thought-leadership content
+For Email: Create complete emails with subject line and proper structure
+For Instagram: Create engaging captions with emojis and hashtags
+For WhatsApp: Create short, personal status updates`
 
-Split the input into the fewest number of tweets possible using these rules:
+        userPrompt = `Context/Intent: ${text}
 
-1. Each tweet MUST be ≤280 characters - this is a hard limit for X (Twitter).
-2. Fill up as much of the 280-character limit as possible without breaking sentences.
-3. Each tweet must end at a logical sentence or clause boundary.
-4. Do not truncate or omit any content - preserve all information.
-5. Start with a strong hook to engage readers.
-6. Use simple formatting (bullets, emojis) to boost readability.
-7. End with a call-to-action or summary if appropriate.
+Generate ${platform} content:`
+      } else {
+        // Mode 2: Content Polishing
+        systemPrompt = `You are an expert content editor specializing in ${platform} content.
 
-OPTIMIZATION STRATEGY:
-- Maximize character usage (aim for 250-280 characters per tweet)
-- Break only at natural sentence/clause boundaries
-- Combine related ideas into single tweets when possible
-- Ensure smooth flow between tweets
+Your task is to polish and format the user's content for ${platform}.
 
-CRITICAL: Double-check that every tweet is under 280 characters before returning.
+Platform Guidelines for ${platform}:
+- Style: ${guidelines.style}
+- Format: ${guidelines.format}
+- Max Length: ${guidelines.maxLength} characters
+- Tone: ${tone}
+- Persona: ${persona}
 
-${targetLanguage && targetLanguage !== 'same' ? `IMPORTANT: Translate the text to ${targetLanguage} while creating the thread.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
+IMPORTANT RULES:
+1. Polish the content while maintaining the original message
+2. Format it appropriately for ${platform}
+3. Respect the ${guidelines.maxLength} character limit
+4. Apply the specified ${tone} tone and ${persona} persona
+5. Improve grammar, clarity, and engagement
+6. Return only the polished content, no explanations
 
-Return the threads as a JSON array of strings.`
-        prompt = `Input:
-${text}
+For Twitter: Make it concise and engaging, split into threads if needed
+For LinkedIn: Make it professional and thought-leadership oriented
+For Email: Format as complete email with proper structure
+For Instagram: Add emojis and hashtags, make it visually appealing
+For WhatsApp: Keep it short and personal for status updates`
 
-Output:`
-        break
+        userPrompt = `Original Content: ${text}
 
-      case 'shorten':
-        const actualTarget = Math.min(targetCharacters, text.length)
-        systemPrompt = `You are a copywriting expert.
+Polish this content for ${platform}:`
+      }
 
-Your job is to shorten the input text as much as possible **without losing key information or impact**. Use concise, clear wording. Avoid fluff. Preserve the original tone and intent.
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+      })
 
-Keep emojis and bullet points if present. Keep it under ${actualTarget} characters if possible.
+      const result = completion.choices[0]?.message?.content
 
-${targetLanguage && targetLanguage !== 'same' ? `IMPORTANT: Translate the text to ${targetLanguage} while shortening it.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
-
-Return only the shortened version without explanations.`
-        prompt = `Input:
-${text}
-
-Output:`
-        break
-
-      case 'viral':
-        systemPrompt = `You are a viral content strategist for X (Twitter).
-
-Rewrite the input text to maximize engagement and shareability. Make it bold, punchy, and emotional. Use short sentences, power words, emojis, and modern internet style.
-
-Optional: Add a question, bold opinion, or CTA to drive reactions.
-
-Preserve the original message, but amplify it with viral energy.
-
-${targetLanguage && targetLanguage !== 'same' ? `IMPORTANT: Translate the text to ${targetLanguage} while making it viral.` : 'IMPORTANT: Maintain the exact same language as the input text. If the input is in Hindi, Spanish, French, or any other language, respond in that same language. Do not translate to English.'}
-
-Return only the viral version without explanations.`
-        prompt = `Input:
-${text}
-
-Output:`
-        break
-
-      default:
-        return NextResponse.json(
-          { error: 'Invalid mode' },
-          { status: 400 }
-        )
-    }
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: mode === 'split' ? 1000 : 500,
-    })
-
-    const result = completion.choices[0]?.message?.content
-
-    if (!result) {
-      return NextResponse.json(
-        { error: 'No response from OpenAI' },
-        { status: 500 }
-      )
-    }
-
-    // Handle split mode specially to parse JSON and validate character limits
-    if (mode === 'split') {
-      try {
-        const threads = JSON.parse(result)
-        if (Array.isArray(threads)) {
-          // Validate that all threads are under 280 characters
-          const validThreads = threads.filter(thread => thread.length <= 280)
-          
-          if (validThreads.length !== threads.length) {
-            console.warn('Some threads exceeded 280 characters and were filtered out')
-          }
-          
-          return NextResponse.json({ 
-            result: validThreads,
-            rateLimit: {
-              remaining: rateLimit.remaining,
-              resetTime: rateLimit.resetTime
-            }
-          })
-        }
-      } catch (e) {
-        // If JSON parsing fails, split by newlines and validate limits
-        const threads = result.split('\n').filter(t => t.trim().length > 0)
-        const validThreads = threads.filter(thread => thread.length <= 280)
-        
-        if (validThreads.length !== threads.length) {
-          console.warn('Some threads exceeded 280 characters and were filtered out')
-        }
-        
-        return NextResponse.json({ 
-          result: validThreads,
-          rateLimit: {
-            remaining: rateLimit.remaining,
-            resetTime: rateLimit.resetTime
-          }
+      if (result) {
+        results.push({
+          platform: platform,
+          content: result.trim()
         })
       }
     }
 
     return NextResponse.json({ 
-      result: [result],
+      result: results,
       rateLimit: {
         remaining: rateLimit.remaining,
         resetTime: rateLimit.resetTime

@@ -1,30 +1,29 @@
-# AI Thread Editor ✨
+# Universal Social Media Content Generator ✨
 
-A powerful, enterprise-level web app to transform and optimize text for social media posts, particularly designed for X (Twitter) threads. Powered by OpenAI's GPT-3.5-turbo with advanced multilingual support and SEO optimization.
+A powerful, enterprise-level web app to create and polish content for all social media platforms. Powered by OpenAI's GPT-3.5-turbo with intelligent platform-specific formatting and professional content generation.
 
 🔗 https://thread-xpert.vercel.app
 
 ## 🌟 Key Features
 
-### 🤖 AI Processing Modes
-- **Fix Grammar**: AI-powered grammar correction using GPT-3.5-turbo
-- **Split for X**: Intelligent splitting of long text into X threads with 280 character limit
-- **Shorten**: AI-powered text shortening while maintaining key messages
-- **Make Viral**: AI-enhanced text optimization for social media engagement
+### 🤖 Two Input Modes
+- **Context to Content**: Provide short context/intent, AI generates full content for selected platforms
+- **Content Polishing**: Paste your content, AI formats and polishes it for selected platforms
 
-### 🌍 Multilingual Support
-- **20+ Languages**: Translate content to English, Hindi, Spanish, French, German, Italian, Portuguese, Russian, Chinese, Japanese, Korean, Arabic, Bengali, Urdu, Tamil, Telugu, Marathi, Gujarati, Punjabi
-- **Language Preservation**: Keep original language or translate to your choice
-- **Cultural Adaptation**: AI understands context for different languages
+### 📱 Multi-Platform Support
+- **Twitter**: Short, engaging tweets with thread support (280 char limit)
+- **LinkedIn**: Professional thought-leadership posts (3000 char limit)
+- **Email**: Complete emails with subject lines and proper structure (5000 char limit)
+- **Instagram**: Engaging captions with emojis and hashtags (2200 char limit)
+- **WhatsApp**: Casual, conversational messages (1000 char limit)
 
-### 🧵 Thread Management
-- **Auto-numbering**: Customizable thread numbering (1/8, 1:, 1., etc.)
-- **Smart Formatting**: Flexible numbering formats for different styles
-- **X Preview**: Real-time preview of how threads will appear on X
-- **Character Limits**: Automatic 280-character enforcement for X threads
+### 🎨 Style Customization
+- **Tone Options**: Professional, Casual, Motivational, Friendly, Formal
+- **Persona Selection**: Tech Founder, Marketer, Entrepreneur, Professional, Student, Influencer
+- **Platform-Specific Formatting**: Each platform gets optimized content structure
 
 ### ✨ User Experience
-- **Live Character Counter**: Real-time character counting with color coding
+- **Live Character Counter**: Real-time character counting with platform-specific limits
 - **Editable Results**: Edit AI-generated content inline
 - **Copy to Clipboard**: One-click copying of individual results
 - **Responsive Design**: Works perfectly on mobile and desktop
@@ -106,67 +105,65 @@ A powerful, enterprise-level web app to transform and optimize text for social m
 
 ## 📖 Usage Guide
 
-### Basic Usage
-1. **Paste or type** your text in the input area
-2. **Select language** (optional) - choose output language or keep original
-3. **Choose AI mode**:
-   - **Fix Grammar**: AI corrects grammar, spelling, and punctuation
-   - **Split for X**: AI intelligently splits text into X threads (280 char limit)
-   - **Shorten**: AI shortens text while preserving key messages
-   - **Make Viral**: AI optimizes text for social media engagement
-4. **Configure options**:
-   - For Split mode: Enable auto-numbering and customize format
-   - For Shorten mode: Adjust target character limit
-5. **Click "💡 Process with AI"** to generate results
-6. **Edit results** inline if needed
-7. **Copy individual results** using the copy button
+### Mode 1: Context to Content
+1. **Select "Context to Content"** mode
+2. **Enter your intent** (e.g., "Apply for 2 days leave", "Tweet about 25% tariff hike")
+3. **Choose platforms** where you want content generated
+4. **Select tone and persona** for your content style
+5. **Click "Generate Content"** to create platform-specific content
 
-### Advanced Features
+### Mode 2: Content Polishing
+1. **Select "Content Polishing"** mode
+2. **Paste your content** in the input area
+3. **Choose platforms** where you want the content formatted
+4. **Select tone and persona** for your content style
+5. **Click "Generate Content"** to polish and format your content
 
-#### 🌍 Language Translation
-- Select your desired output language from the dropdown
-- Choose "Keep original language" to preserve input language
-- Supports 20+ languages including major world languages and Indian languages
+### Platform-Specific Features
 
-#### 🧵 Thread Auto-numbering
-- Enable auto-numbering for split mode
-- Customize format: `{current}/{total}`, `{current}:`, `{current}.`, etc.
-- Examples: "1/8", "1:", "1.", "Tweet 1 of 8"
+#### 🐦 Twitter
+- **Character Limit**: 280 characters per tweet
+- **Style**: Short, punchy, engaging
+- **Features**: Thread support, hashtag optimization
+- **Format**: Single tweet or thread format
 
-#### 📱 Mobile Experience
-- Install as PWA on mobile devices
-- Responsive design works on all screen sizes
-- Touch-optimized interface
+#### 💼 LinkedIn
+- **Character Limit**: 3000 characters
+- **Style**: Professional, thought leadership
+- **Features**: Paragraph formatting, call-to-action
+- **Format**: Professional post with proper formatting
+
+#### 📧 Email
+- **Character Limit**: 5000 characters
+- **Style**: Formal, clear, professional
+- **Features**: Subject line, greeting, body, sign-off
+- **Format**: Complete email with proper structure
+
+#### 📸 Instagram
+- **Character Limit**: 2200 characters
+- **Style**: Visual, engaging, emoji-friendly
+- **Features**: Emoji optimization, hashtag suggestions
+- **Format**: Instagram caption with emojis and hashtags
+
+#### 💬 WhatsApp
+- **Character Limit**: 1000 characters
+- **Style**: Casual, friendly, conversational
+- **Features**: Simple, direct messaging
+- **Format**: Simple, casual message
 
 ## 🤖 AI Features in Detail
 
-### Fix Grammar Mode
-- Uses GPT-3.5-turbo to correct grammar, spelling, and punctuation
-- Professional-grade text editing
-- Maintains original meaning while improving clarity
-- **Multilingual support**: Works in any language
+### Context to Content Mode
+- **Intelligent Generation**: AI understands your intent and creates appropriate content
+- **Platform Optimization**: Each platform gets tailored content structure
+- **Style Consistency**: Maintains selected tone and persona across platforms
+- **Character Compliance**: Respects platform-specific character limits
 
-### Split for X Mode
-- AI intelligently splits text by complete thoughts and sentences
-- Ensures each thread stays within 280 character limit
-- Optimizes for readability and engagement
-- Returns multiple threads as separate copyable items
-- X Preview shows how threads will appear
-- **Auto-numbering**: Customizable thread numbering
-- **Smart formatting**: Flexible numbering styles
-
-### Shorten Mode
-- AI shortens text to fit within target character limit
-- Preserves key messages and meaning
-- Maintains readability and flow
-- Adjustable character limit (100-500 characters)
-- **Language preservation**: Maintains original language
-
-### Make Viral Mode
-- AI enhances text for social media engagement
-- Adds relevant emojis and compelling language
-- Optimizes for virality and shareability
-- **Cultural adaptation**: Understands context for different languages
+### Content Polishing Mode
+- **Grammar Correction**: Improves grammar, spelling, and punctuation
+- **Platform Formatting**: Adapts content structure for each platform
+- **Engagement Enhancement**: Makes content more engaging and shareable
+- **Style Application**: Applies selected tone and persona to existing content
 
 ## 📱 Mobile & PWA Features
 
@@ -184,7 +181,7 @@ A powerful, enterprise-level web app to transform and optimize text for social m
 - **Uses shadcn/ui components** for consistent design
 - **Tailwind CSS** for styling
 - **TypeScript** for type safety
-- **OpenAI API integration** for intelligent text processing
+- **OpenAI API integration** for intelligent content generation
 - **Comprehensive SEO optimization** with metadata, Open Graph, Twitter Cards
 - **Structured data** (JSON-LD) for rich search snippets
 - **Google Analytics** integration for user insights
@@ -215,7 +212,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 - **Offline capability** with service workers
 
 ### Business Benefits
-- **Global reach** with 20+ language support
+- **Multi-platform content creation** for comprehensive social media presence
 - **Professional appearance** in search results
 - **Social media friendly** with optimized sharing
 - **Mobile-first design** for modern users
@@ -225,8 +222,8 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 The app includes Google Analytics integration to track:
 - User engagement and feature usage
-- Popular processing modes
-- Language preferences
+- Popular platforms and content types
+- Tone and persona preferences
 - Copy actions and social sharing
 - Performance metrics
 
